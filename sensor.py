@@ -14,6 +14,12 @@ from homeassistant.const import (
     DEVICE_CLASS_ENERGY,
 )
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
+from homeassistant.core import callback
 from .hub import Hub,Outlet
 
 from .const import DOMAIN
@@ -64,6 +70,12 @@ class SensorBase(Entity):
     def available(self) -> bool:
         """Return True if roller and hub is available."""
         return self._outlet.hub.online
+        
+    @callback
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        self._attr_is_on = self.coordinator.data[self.idx]["state"]
+        self.async_write_ha_state()
 
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""

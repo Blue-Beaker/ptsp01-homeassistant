@@ -34,7 +34,12 @@ class Hub:
             Outlet(2,self._id+"_2",self),
             Outlet(3,self._id+"_3",self)
         ]
-        self.online = True
+        self.strip.connect()
+        self.online = self.strip.waitForLogin()
+
+    @property
+    def firmware_version(self):
+        return self.strip.version
 
     @property
     def hub_id(self) -> str:
@@ -60,7 +65,9 @@ class Outlet:
         self._callbacks = set()
         self._loop = asyncio.get_event_loop()
         self.model = "PTSP01"
-
+    @property
+    def firmware_version(self):
+        return self.hub.firmware_version
     @property
     def is_on(self) -> bool | None:
         """Return true if light is on."""

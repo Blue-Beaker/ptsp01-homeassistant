@@ -6,11 +6,16 @@ from .ptsp01telnet import ptsp01
 from .hub import Hub,Outlet
 # These constants are relevant to the type of entity we are using.
 # See below for how they are used.
-from homeassistant.components.switch import (PLATFORM_SCHEMA,SwitchEntity,STATE_ON)
+from homeassistant.components.switch import (PLATFORM_SCHEMA,SwitchEntity,SwitchDeviceClass)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
+from homeassistant.helpers.update_coordinator import (
+    CoordinatorEntity,
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
+from homeassistant.core import callback
 from .const import DOMAIN
 
 
@@ -37,6 +42,7 @@ class OutletEntity(SwitchEntity):
 
     # Our dummy class is PUSH, so we tell HA that it should not be polled
     should_poll = True
+    device_class = SwitchDeviceClass.OUTLET
 
     def __init__(self, outlet:Outlet) -> None:
         """Initialize the sensor."""
