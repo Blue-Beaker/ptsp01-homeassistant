@@ -1,6 +1,6 @@
 {
-  "domain": "detailed_hello_world_push",
-  "name": "Detailed Hello World Push",
+  "domain": "ptsp01_powerstrip",
+  "name": "Boomense Powerstrip SP01",
   "config_flow": true,
   "documentation": "https://www.home-assistant.io/integrations/detailed_hello_world_push",
   "requirements": [],
@@ -8,7 +8,7 @@
   "zeroconf": [],
   "homekit": {},
   "dependencies": [],
-  "codeowners": ["@sillyfrog"],
-  "iot_class": "local_push",
+  "codeowners": ["@Blue-Beaker"],
+  "iot_class": "local_polling",
   "version": "0.1.0"
 }

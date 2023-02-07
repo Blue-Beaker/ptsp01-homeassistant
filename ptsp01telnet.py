@@ -2,9 +2,6 @@ import telnetlib
 import time
 import threading
 
-host='192.168.31.179'
-port=23
-
 class ptsp01:
     host:str
     port:int
@@ -12,9 +9,14 @@ class ptsp01:
     listener:threading.Thread
     password:str=""
     __logged_in:bool|None=None
-    version:str=""
-    name:str="SP01"
-    states={'1':{},'2':{},'3':{}}
+    __version:str=""
+    @property
+    def version(self):
+        return self.__version
+    __states={'1':{},'2':{},'3':{}}
+    @property
+    def states(self):
+        return self.states
     def __init__(self,host:str,port:int=23,password:str=""):
         self.host=host
         self.port=port
@@ -31,7 +33,7 @@ class ptsp01:
                 self.__logged_in=True
                 for line in message.splitlines():
                     if line.startswith(" ATTITUDE ADJUSTMENT ("):
-                        self.version=line.split("(")[1].split(")")[0]
+                        self.__version=line.split("(")[1].split(")")[0]
                 self.listener.start()
             elif message.find("(none) login: ")>=0:
                 self.login()
@@ -41,6 +43,8 @@ class ptsp01:
     def login(self):
         self.telnet.write(("root\n"+self.password+"\n").encode())
         self.onConnect()
+    def isLoggedin(self):
+        return self.__logged_in
     def waitForLogin(self):
         while(self.__logged_in==None):
             time.sleep(0.1)
@@ -50,6 +54,26 @@ class ptsp01:
         if self.__logged_in:
             command=f"qmibtree -s Device.SmartPlug.Socket.{socket}.Switch {switch}\n"
             self.telnet.write(command.encode())
+    def getVoltage(self,socket:int):
+        try:
+            return float(self.__states[str(socket)]["Voltage"])
+        except:
+            return float('nan')
+    def getCurrent(self,socket:int):
+        try:
+            return float(self.__states[str(socket)]["Current"])
+        except:
+            return float('nan')
+    def getPower(self,socket:int):
+        try:
+            return float(self.__states[str(socket)]["Power"])
+        except:
+            return float('nan')
+    def getEnergy(self,socket:int):
+        try:
+            return float(self.__states[str(socket)]["Energy"])
+        except:
+            return float('nan')
 
     def getStatus(self):
         if self.__logged_in:
@@ -73,7 +97,7 @@ class ptsp01:
                 value=int(pair[1])
             else:
                 value=pair[1]
-            self.states[socket][key[0]]=value
+            self.__states[socket][key[0]]=value
             #print(key[0],key[1],pair[1])
     def onException(self,exception:Exception):
         pass
