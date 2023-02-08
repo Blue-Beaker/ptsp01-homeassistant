@@ -1,24 +1,18 @@
-"""Platform for sensor integration."""
+"""Platform for Switch integration."""
 from __future__ import annotations
-
+import logging
 from typing import Any
-from .ptsp01telnet import ptsp01
-from .hub import Hub,Outlet
 # These constants are relevant to the type of entity we are using.
 # See below for how they are used.
 from homeassistant.components.switch import (PLATFORM_SCHEMA,SwitchEntity,SwitchDeviceClass)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-    DataUpdateCoordinator,
-    UpdateFailed,
-)
-from homeassistant.core import callback
+from .hub import Hub,OutletDevice
 from .const import DOMAIN
 
 
+_LOGGER = logging.getLogger(__name__)
 # This function is called as part of the __init__.async_setup_entry (via the
 # hass.config_entries.async_forward_entry_setup call)
 async def async_setup_entry(
@@ -32,7 +26,14 @@ async def async_setup_entry(
     hub:Hub = hass.data[DOMAIN][config_entry.entry_id]
 
     # Add all entities to HA
-    async_add_entities(OutletEntity(outlet) for outlet in hub.outlets)
+    new_devices = []
+    for outlet in hub.outlets:
+        s=OutletEntity(outlet)
+        new_devices.append(s)
+        outlet.switch=s
+    if new_devices:
+        async_add_entities(new_devices)
+    # async_add_entities(OutletEntity(outlet) for outlet in hub.outlets)
 
 # This entire class could be written to extend a base class to ensure common attributes
 # are kept identical/in sync. It's broken apart here between the Cover and Sensors to
@@ -41,10 +42,10 @@ class OutletEntity(SwitchEntity):
     """Representation of a dummy Cover."""
 
     # Our dummy class is PUSH, so we tell HA that it should not be polled
-    should_poll = True
+    should_poll = False
     device_class = SwitchDeviceClass.OUTLET
 
-    def __init__(self, outlet:Outlet) -> None:
+    def __init__(self, outlet:OutletDevice) -> None:
         """Initialize the sensor."""
         # Usual setup is done here. Callbacks are added in async_added_to_hass.
         self._outlet = outlet
@@ -116,9 +117,11 @@ class OutletEntity(SwitchEntity):
     @property
     def is_on(self) -> bool:
         """Return True if roller and hub is available."""
-        return self._outlet._state==True
+        return self._outlet.is_on==True
     def turn_on(self, **kwargs: Any) -> None:
-        return self._outlet.turn_on()
+        self._outlet.turn_on()
+        self.async_write_ha_state()
     def turn_off(self, **kwargs: Any) -> None:
-        return self._outlet.turn_off()
+        self._outlet.turn_off()
+        self.async_write_ha_state()
 

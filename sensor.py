@@ -1,27 +1,13 @@
-"""Platform for sensor integration."""
-# This file shows the setup for the sensors associated with the cover.
-# They are setup in the same way with the call to the async_setup_entry function
-# via HA from the module __init__. Each sensor has a device_class, this tells HA how
-# to display it in the UI (for know types). The unit_of_measurement property tells HA
-# what the unit is, so it can display the correct range. For predefined types (such as
-# battery), the unit_of_measurement should match what's expected.
-import random
-
+"""Sensors of the powerstrip."""
+from typing import Any
 from homeassistant.const import (
     DEVICE_CLASS_VOLTAGE,
     DEVICE_CLASS_CURRENT,
     DEVICE_CLASS_POWER,
     DEVICE_CLASS_ENERGY,
 )
-from homeassistant.helpers.entity import Entity
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-    DataUpdateCoordinator,
-    UpdateFailed,
-)
-from homeassistant.core import callback
-from .hub import Hub,Outlet
-
+from homeassistant.components.sensor import SensorEntity
+from .hub import Hub,OutletDevice
 from .const import DOMAIN
 
 
@@ -35,10 +21,18 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 
     new_devices = []
     for outlet in hub.outlets:
-        new_devices.append(VoltageSensor(outlet))
-        new_devices.append(CurrentSensor(outlet))
-        new_devices.append(PowerSensor(outlet))
-        new_devices.append(EnergySensor(outlet))
+        u=VoltageSensor(outlet)
+        new_devices.append(u)
+        outlet.voltage_sensor=u
+        i=CurrentSensor(outlet)
+        new_devices.append(i)
+        outlet.current_sensor=i
+        p=PowerSensor(outlet)
+        new_devices.append(p)
+        outlet.power_sensor=p
+        w=EnergySensor(outlet)
+        new_devices.append(w)
+        outlet.energy_sensor=w
     if new_devices:
         async_add_entities(new_devices)
 
@@ -46,12 +40,12 @@ async def async_setup_entry(hass, config_entry, async_add_entities):
 # This base class shows the common properties and methods for a sensor as used in this
 # example. See each sensor for further details about properties and methods that
 # have been overridden.
-class SensorBase(Entity):
-    """Base representation of a Hello World Sensor."""
+class SensorBase(SensorEntity):
+    """Base representation of a Sensor."""
 
-    should_poll = True
-
-    def __init__(self, outlet:Outlet):
+    should_poll = False
+    _state:Any
+    def __init__(self, outlet:OutletDevice):
         """Initialize the sensor."""
         self._outlet = outlet
 
@@ -68,14 +62,8 @@ class SensorBase(Entity):
     # If an entity is offline (return False), the UI will refelect this.
     @property
     def available(self) -> bool:
-        """Return True if roller and hub is available."""
+        """Return True if powerstrip is available."""
         return self._outlet.hub.online
-        
-    @callback
-    def _handle_coordinator_update(self) -> None:
-        """Handle updated data from the coordinator."""
-        self._attr_is_on = self.coordinator.data[self.idx]["state"]
-        self.async_write_ha_state()
 
     async def async_added_to_hass(self):
         """Run when this Entity has been added to HA."""
@@ -86,108 +74,70 @@ class SensorBase(Entity):
         """Entity being removed from hass."""
         # The opposite of async_added_to_hass. Remove any registered call backs here.
         self._outlet.remove_callback(self.async_write_ha_state)
+    # @property
+    # def native_value(self):
+    #     """Return the state of the sensor."""
+    #     return None
 
 
 class VoltageSensor(SensorBase):
     """Representation of a Sensor."""
-    # The class of this device. Note the value should come from the homeassistant.const
-    # module. More information on the available devices classes can be seen here:
-    # https://developers.home-assistant.io/docs/core/entity/sensor
     device_class = DEVICE_CLASS_VOLTAGE
-    # The unit of measurement for this entity. As it's a DEVICE_CLASS_BATTERY, this
-    # should be PERCENTAGE. A number of units are supported by HA, for some
-    # examples, see:
-    # https://developers.home-assistant.io/docs/core/entity/sensor#available-device-classes
-    _attr_unit_of_measurement = "V"
+    native_unit_of_measurement = "V"
 
     def __init__(self, outlet):
         """Initialize the sensor."""
         super().__init__(outlet)
-        # As per the sensor, this must be a unique value within this domain. This is done
-        # by using the device ID, and appending "_battery"
         self._attr_unique_id = f"{self._outlet._id}_voltage"
         # The name of the entity
         self._attr_name = f"{self._outlet.name} Voltage"
-        self._state = self._outlet.voltage
     @property
-    def state(self):
+    def native_value(self):
         """Return the state of the sensor."""
         return self._outlet.voltage
 
 class CurrentSensor(SensorBase):
     """Representation of a Sensor."""
-    # The class of this device. Note the value should come from the homeassistant.const
-    # module. More information on the available devices classes can be seen here:
-    # https://developers.home-assistant.io/docs/core/entity/sensor
     device_class = DEVICE_CLASS_CURRENT
-    # The unit of measurement for this entity. As it's a DEVICE_CLASS_BATTERY, this
-    # should be PERCENTAGE. A number of units are supported by HA, for some
-    # examples, see:
-    # https://developers.home-assistant.io/docs/core/entity/sensor#available-device-classes
-    _attr_unit_of_measurement = "A"
+    native_unit_of_measurement = "A"
 
     def __init__(self, outlet):
         """Initialize the sensor."""
         super().__init__(outlet)
-        # As per the sensor, this must be a unique value within this domain. This is done
-        # by using the device ID, and appending "_battery"
         self._attr_unique_id = f"{self._outlet._id}_current"
         # The name of the entity
         self._attr_name = f"{self._outlet.name} Current"
-        self._state = self._outlet.current
     @property
-    def state(self):
+    def native_value(self):
         """Return the state of the sensor."""
         return self._outlet.current
-
 class PowerSensor(SensorBase):
     """Representation of a Sensor."""
-    # The class of this device. Note the value should come from the homeassistant.const
-    # module. More information on the available devices classes can be seen here:
-    # https://developers.home-assistant.io/docs/core/entity/sensor
     device_class = DEVICE_CLASS_POWER
-    # The unit of measurement for this entity. As it's a DEVICE_CLASS_BATTERY, this
-    # should be PERCENTAGE. A number of units are supported by HA, for some
-    # examples, see:
-    # https://developers.home-assistant.io/docs/core/entity/sensor#available-device-classes
-    _attr_unit_of_measurement = "W"
+    native_unit_of_measurement = "W"
 
     def __init__(self, outlet):
         """Initialize the sensor."""
         super().__init__(outlet)
-        # As per the sensor, this must be a unique value within this domain. This is done
-        # by using the device ID, and appending "_battery"
         self._attr_unique_id = f"{self._outlet._id}_power"
         # The name of the entity
         self._attr_name = f"{self._outlet.name} Power"
-        self._state = self._outlet.power
     @property
-    def state(self):
+    def native_value(self):
         """Return the state of the sensor."""
         return self._outlet.power
-
 class EnergySensor(SensorBase):
     """Representation of a Sensor."""
-    # The class of this device. Note the value should come from the homeassistant.const
-    # module. More information on the available devices classes can be seen here:
-    # https://developers.home-assistant.io/docs/core/entity/sensor
     device_class = DEVICE_CLASS_ENERGY
-    # The unit of measurement for this entity. As it's a DEVICE_CLASS_BATTERY, this
-    # should be PERCENTAGE. A number of units are supported by HA, for some
-    # examples, see:
-    # https://developers.home-assistant.io/docs/core/entity/sensor#available-device-classes
-    _attr_unit_of_measurement = "kWh"
+    native_unit_of_measurement = "kWh"
 
     def __init__(self, outlet):
         """Initialize the sensor."""
         super().__init__(outlet)
-        # As per the sensor, this must be a unique value within this domain. This is done
-        # by using the device ID, and appending "_battery"
         self._attr_unique_id = f"{self._outlet._id}_energy"
         # The name of the entity
         self._attr_name = f"{self._outlet.name} Energy"
-        self._state = self._outlet.energy
     @property
-    def state(self):
+    def native_value(self):
         """Return the state of the sensor."""
         return self._outlet.energy
