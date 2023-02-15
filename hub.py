@@ -6,6 +6,7 @@ import traceback
 from typing import Any, Callable
 
 from homeassistant.core import HomeAssistant
+from homeassistant.config_entries import ConfigEntry,ConfigEntryNotReady,ConfigEntryAuthFailed
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.components.sensor import SensorEntity
 from .ptsp01telnet import ptsp01
@@ -32,13 +33,16 @@ class Hub:
             OutletDevice(3,self._id+"_3",self)
         ]
         self.strip.outlets=self.outlets
-        self.strip.connect()
-        self.online = self.strip.waitForLogin()
-        self.strip.start_update()
+        self.strip.start_polling()
     @property
     def firmware_version(self):
         return self.strip.version
-
+    async def setup(self):
+        self.strip.connect()
+        self.strip.waitForLogin()
+    @property
+    def online(self):
+        return self.strip.isLoggedin()==True
     @property
     def hub_id(self) -> str:
         """ID for hub."""
@@ -71,6 +75,12 @@ class ptsp01_push(ptsp01):
         self.getSwitch(socket)
     def onException(self,exception:Exception):
         _LOGGER.error("Exception:%s",traceback.format_exc())
+    def onLoginFailure(self):
+        raise ConfigEntryAuthFailed
+    def onConnectionFailure(self,e):
+        _LOGGER.error("Connection Failed:%s",traceback.format_exc())
+        super().onConnectionFailure(e)
+        # raise ConnectionError
 class OutletDevice:
     _state=None
     switch: SwitchEntity

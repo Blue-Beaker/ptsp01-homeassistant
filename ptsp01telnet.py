@@ -17,7 +17,7 @@ class ptsp01:
     host:str
     port:int
     telnet:telnetlib.Telnet
-    listener:threading.Thread
+    receiver_thread:threading.Thread
     __poller:threading.Thread
     __polling:bool=False
     password:str=""
@@ -36,11 +36,12 @@ class ptsp01:
         self.port=port
         self.password=password
         self.telnet=telnetlib.Telnet()
-        self.listener=threading.Thread(target=self.threaded_receiver,daemon=True)
+        self.receiver_thread=threading.Thread(target=self.threaded_receiver,daemon=True)
         self.__poller=threading.Thread(target=self.pollingStatus,daemon=True)
     def connect(self):
         self.telnet.open(self.host,self.port)
         self.onConnect()
+        self.receiver_thread.start()
     def onConnect(self):
         message=self.telnet.read_until("root@(none):/# ".encode(),1000).decode()
         if not self.__logged_in:
@@ -49,15 +50,17 @@ class ptsp01:
                 for line in message.splitlines():
                     if line.startswith(" ATTITUDE ADJUSTMENT ("):
                         self.__version=line.split("(")[1].split(")")[0]
-                self.listener.start()
             elif message.find("(none) login: ")>=0:
                 self.login()
             elif message.find("Login incorrect")>=0:
                 print("Login incorrect")
                 self.__logged_in=False
+                self.onLoginFailure()
     def login(self):
         self.telnet.write(("root\n"+self.password+"\n").encode())
         self.onConnect()
+    def onLoginFailure(self):
+        pass
     def isLoggedin(self):
         return self.__logged_in
     def waitForLogin(self):
@@ -124,20 +127,29 @@ class ptsp01:
             elif key==("Energy"):
                 self.__states[socket].energy=float(value)
             self.onStatusUpdate(socket,key)
-    def start_update(self):
+    def start_polling(self):
         self.__polling=True
         self.__poller.start()
-    def stop_update(self):
+    def stop_polling(self):
         self.__polling=False
+    @property
+    def is_updating(self):
+        return self.__polling
     def onStatusUpdate(self,socket:int,key:str):
         pass
+    def onConnectionFailure(self,e):
+        self.close()
     def onException(self,exception:Exception):
         pass
     def threaded_receiver(self):
-        while(1):
+        while(self.__logged_in):
             try:
-                self.onMessage(self.readLine().removesuffix('\r\n'))
+                msg = self.readLine().removesuffix('\r\n')
+                self.onMessage(msg)
+            except (EOFError,OSError,ConnectionError,BrokenPipeError) as e:
+                self.onConnectionFailure(e)
             except Exception as e:
                 self.onException(e)
     def close(self):
+        self.__logged_in=False
         self.telnet.close()
