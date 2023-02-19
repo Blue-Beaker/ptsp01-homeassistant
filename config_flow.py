@@ -28,7 +28,8 @@ _LOGGER = logging.getLogger(__name__)
 DATA_SCHEMA = vol.Schema({
     vol.Required("host"): str,
     vol.Optional("port",default=23): int,
-    vol.Optional("password",default=''): str})
+    vol.Optional("password",default=''): str,
+    vol.Optional("custom_id",default=''): str})
 
 
 async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
@@ -37,14 +38,14 @@ async def validate_input(hass: HomeAssistant, data: dict) -> dict[str, Any]:
     Data has the keys from DATA_SCHEMA with values provided by the user.
     """
 
-    hub = Hub(hass, data["host"],data["port"],data["password"])
+    hub = Hub(hass, data)
     result = await hub.test_connection()
     if result==2:
         raise InvalidAuth
     elif result==3:
         raise CannotConnect
 
-    return {"host": data["host"], "port":data["port"], "password":data["password"]}
+    return {"host": data["host"], "port":data["port"], "password":data["password"],"custom_id":data["custom_id"]}
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):

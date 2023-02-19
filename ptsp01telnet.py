@@ -41,9 +41,10 @@ class ptsp01:
     def connect(self):
         self.telnet.open(self.host,self.port)
         self.onConnect()
-        self.receiver_thread.start()
+        if not self.receiver_thread.is_alive():
+            self.receiver_thread.start()
     def onConnect(self):
-        message=self.telnet.read_until("root@(none):/# ".encode(),1000).decode()
+        message=self.telnet.read_until("root@(none):/# ".encode(),3000).decode()
         if not self.__logged_in:
             if message.endswith("root@(none):/# "):
                 self.__logged_in=True
@@ -146,7 +147,7 @@ class ptsp01:
             try:
                 msg = self.readLine().removesuffix('\r\n')
                 self.onMessage(msg)
-            except (EOFError,OSError,ConnectionError,BrokenPipeError) as e:
+            except (EOFError,OSError,ConnectionError,ConnectionResetError,BrokenPipeError) as e:
                 self.onConnectionFailure(e)
             except Exception as e:
                 self.onException(e)

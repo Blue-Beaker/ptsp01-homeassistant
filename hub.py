@@ -2,6 +2,7 @@
 from __future__ import annotations
 import logging
 import asyncio
+import time
 import traceback
 from typing import Any, Callable
 
@@ -18,15 +19,15 @@ class Hub:
 
     manufacturer = "BoomSense"
 
-    def __init__(self, hass: HomeAssistant, host: str, port:int,password:str) -> None:
+    def __init__(self, hass: HomeAssistant, data: dict) -> None:
         """Init powerstrip as hub."""
-        self._host = host
-        self._port = port
-        self._password = password
+        self._host = data["host"]
+        self._port = data["port"]
+        self._password = data["password"]
         self._hass = hass
-        self._name = host
-        self._id = "ptsp01_"+host.lower()
-        self.strip=ptsp01_push(host,port,password)
+        self._id = data["custom_id"] if "custom_id" in data.keys() and len(data["custom_id"])>0 else "ptsp01_"+self._host.lower()
+        self._name = self._id
+        self.strip=ptsp01_push(self._host,self._port,self._password)
         self.outlets=[
             OutletDevice(1,self._id+"_1",self),
             OutletDevice(2,self._id+"_2",self),
@@ -76,10 +77,30 @@ class ptsp01_push(ptsp01):
     def onException(self,exception:Exception):
         _LOGGER.error("Exception:%s",traceback.format_exc())
     def onLoginFailure(self):
-        raise ConfigEntryAuthFailed
+        raise ConfigEntryAuthFailed(f"Cant login to {self.host} with given password")
     def onConnectionFailure(self,e):
-        _LOGGER.error("Connection Failed:%s",traceback.format_exc())
+        _LOGGER.warning("Connection Error:%s",traceback.format_exc())
         super().onConnectionFailure(e)
+        for outlet in self.outlets:
+            outlet.switch.async_write_ha_state()
+            outlet.voltage_sensor.async_write_ha_state()
+            outlet.current_sensor.async_write_ha_state()
+            outlet.power_sensor.async_write_ha_state()
+            outlet.energy_sensor.async_write_ha_state()
+        self.tryReconnect()
+    def tryReconnect(self):
+        connected=False
+        while(not connected):
+            try:
+                self.close()
+                self.connect()
+                connected=self.waitForLogin()
+                if not connected:
+                    _LOGGER.warning("Reconnect Failed, retrying in %s seconds", 20)
+                    time.sleep(20)
+            except:
+                _LOGGER.warning("Reconnect Failed:%s, retrying in %s seconds",traceback.format_exc(), 20)
+                time.sleep(20)
         # raise ConnectionError
 class OutletDevice:
     _state=None

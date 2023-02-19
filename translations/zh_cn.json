@@ -12,8 +12,9 @@
             "user": {
                 "data": {
                     "host": "IP/主机名",
-                    "port": "端口",
-                    "password": "密码"
+                    "port": "Telnet端口",
+                    "password": "密码(可选)",
+                    "custom_id": "自定义Unique ID(留空自动生成)"
                 }
             }
         }
