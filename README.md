@@ -1,11 +1,22 @@
-# More "Level 2" Comprehensive async Push Integration Example
+# PTSP01-Hass
 
-This example aims to show the best practice for a more complete integration using **push** with async.
+用于邦讯玩儿插排（PTSP01）的Homeassistant自定义集成.  
+目前，它只能连接到无密码的插排。  
+可通过在主板串口连接单片机，使其在收到`Press the [f] key and hit [enter] to enter failsafe mode`后写入 `f\r/etc/init.d/rcS S boot\r`进入failsafe模式并继续启动来绕过密码。  
 
-It is based on a _cover_, emulating battery operated roller blinds.
+功能:
+- 通过telnet连接
+- 将每个插孔当作一个设备
+- 读取/控制开关
+- 读取电压、电流、功率、能耗
 
-The example includes extensive comments (that should be removed if making a true integration), to guide you through what each field and property is for. It includes 2 sensors tied to the primary cover device.
+This is a custom homeassistant integration for boomsense ptsp01 powerstrip.  
+For now, it only works with powerstrips with no password.   
+A MCU can be attached to onboard serial, make it write `f\r/etc/init.d/rcS S boot\r` after reading `Press the [f] key and hit [enter] to enter failsafe mode` , then the powerstrip will be booted into failsafe mode and continue with no password needed.  
 
-It's all implemented using a _push_ model in _async_.
+Features:
+- Connects via telnet
+- Represents every socket as a device
+- Access to switch
+- Read Voltage, Current, Power and Energy
 
-This example does not cover translations.
