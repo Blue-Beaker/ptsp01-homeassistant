@@ -11,6 +11,7 @@ from homeassistant.config_entries import ConfigEntry,ConfigEntryNotReady,ConfigE
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.components.sensor import SensorEntity
 from .ptsp01telnet import ptsp01
+from .const import CONF_INTERVAL, CONF_PASS,CONF_HOST,CONF_ID,CONF_PORT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -21,13 +22,15 @@ class Hub:
 
     def __init__(self, hass: HomeAssistant, data: dict) -> None:
         """Init powerstrip as hub."""
-        self._host = data["host"]
-        self._port = data["port"]
-        self._password = data["password"]
+        self._host = data[CONF_HOST]
+        self._port = data[CONF_PORT]
+        self._password = data[CONF_PASS]
+        self._interval = data[CONF_INTERVAL] if CONF_INTERVAL in data.keys() else 30
         self._hass = hass
-        self._id = data["custom_id"] if "custom_id" in data.keys() and len(data["custom_id"])>0 else "ptsp01_"+self._host.lower()
+        self._id = data[CONF_ID] if CONF_ID in data.keys() and len(data[CONF_ID])>0 else "ptsp01_"+self._host.lower()
         self._name = self._id
         self.strip=ptsp01_push(self._host,self._port,self._password)
+        self.strip.update_interval=self._interval
         self.outlets=[
             OutletDevice(1,self._id+"_1",self),
             OutletDevice(2,self._id+"_2",self),
@@ -58,9 +61,11 @@ class Hub:
             return 2
 class ptsp01_push(ptsp01):
     outlets:list[OutletDevice]
+    def onMessage(self, message: str):
+        _LOGGER.debug(f"From PTSP01:%s",message)
+        return super().onMessage(message)
     def onStatusUpdate(self,socket:int,key:str):
         outlet=self.outlets[socket-1]
-        # _LOGGER.warning(f"%s,Sensor:%s",socket,key)
         if key==("Switch"):
             outlet.switch.async_write_ha_state()
         elif key==("Voltage"):
@@ -136,7 +141,7 @@ class OutletDevice:
 
 
     def register_callback(self, callback: Callable[[], None]) -> None:
-        """Register callback, called when Roller changes state."""
+        """Register callback."""
         self._callbacks.add(callback)
 
     def remove_callback(self, callback: Callable[[], None]) -> None:
