@@ -23,7 +23,7 @@ class ptsp01:
     password:str=""
     __logged_in:bool|None=None
     __version:str=""
-    update_interval:int=5
+    update_interval:int=10
     @property
     def version(self):
         return self.__version
