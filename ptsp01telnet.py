@@ -1,3 +1,4 @@
+import json
 import telnetlib
 import time
 import threading
@@ -24,6 +25,7 @@ class ptsp01:
     __logged_in:bool|None=None
     __version:str=""
     update_interval:int=10
+    __stored_message:str=""
     @property
     def version(self):
         return self.__version
@@ -48,6 +50,7 @@ class ptsp01:
         if not self.__logged_in:
             if message.endswith("root@(none):/# "):
                 self.__logged_in=True
+                self.__stored_message=message
                 for line in message.splitlines():
                     if line.startswith(" ATTITUDE ADJUSTMENT ("):
                         self.__version=line.split("(")[1].split(")")[0]
@@ -91,15 +94,26 @@ class ptsp01:
             self.telnet.write(command.encode())
     def pollingStatus(self):
         while(self.__polling):
+            while(not self.__stored_message.endswith("root@(none):/# ")):   # only send commands when ready
+                time.sleep(0.1)
             self.getStatus()
             time.sleep(self.update_interval)
     def onMessage(self,message:str):
-        #print(message)
         message=message.replace(" ","")
         if message.startswith("Device.SmartPlug.Socket."):
             self.parseStatus(message)
+    # Deprecated. Use read() and getMsg() instead.
     def readLine(self):
         return(self.telnet.read_until('\r\n'.encode(),100)).decode()
+    
+    def read(self):
+        self.__stored_message=self.__stored_message+self.telnet.read_eager().decode()
+    def getMsg(self):
+        if self.__stored_message.find("\r\n")>-1:
+            spl=self.__stored_message.split("\r\n",1)
+            msg=spl[0]
+            self.__stored_message=spl[1]
+            return msg
     # def onMessageBlock(self,messages:str):
     #     lines=messages.split("\r\n")
     #     update=False
@@ -111,7 +125,7 @@ class ptsp01:
     #     if update:
     #         self.onStatusUpdate()
 
-    def parseStatus(self,message):
+    def parseStatus(self,message):  #spaces are removed from message
             socket=int(message[24])
             pairstr=message[26:]
             pair:str=pairstr.split('=')
@@ -125,8 +139,12 @@ class ptsp01:
                 self.__states[socket].current=float(value)
             elif key==("Power"):
                 self.__states[socket].power=float(value)
-            elif key==("Energy"):
-                self.__states[socket].energy=float(value)
+            # elif key==("Energy"):
+            #     self.__states[socket].energy=float(value)
+            elif key==("EnergyMeter.SingleCount"):
+                print(value)
+                data=json.loads(value.replace("'",'"'))
+                self.__states[socket].energy=float(data["peakenergy"])
             self.onStatusUpdate(socket,key)
     def start_polling(self):
         self.__polling=True
@@ -145,12 +163,16 @@ class ptsp01:
     def threaded_receiver(self):
         while(self.__logged_in):
             try:
-                msg = self.readLine().removesuffix('\r\n')
-                self.onMessage(msg)
+                # msg = self.readLine.removesuffix('\r\n')
+                self.read()
+                msg = self.getMsg()
+                if msg:
+                    self.onMessage(msg)
             except (EOFError,OSError,ConnectionError,ConnectionResetError,BrokenPipeError) as e:
                 self.onConnectionFailure(e)
             except Exception as e:
                 self.onException(e)
+            time.sleep(0.5)
     def close(self):
         self.__logged_in=False
         self.telnet.close()

@@ -129,7 +129,7 @@ class PowerSensor(SensorBase):
 class EnergySensor(SensorBase):
     """Representation of a Sensor."""
     device_class = DEVICE_CLASS_ENERGY
-    native_unit_of_measurement = "kWh"
+    native_unit_of_measurement = "Wh"
 
     def __init__(self, outlet):
         """Initialize the sensor."""
