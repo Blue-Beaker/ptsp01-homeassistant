@@ -14,7 +14,8 @@
                     "host": "IP/hostname",
                     "port": "Telnet port",
                     "password": "Password (Optional)",
-                    "custom_id": "Custom Unique ID (Leave blank to use hostname)"
+                    "custom_id": "Custom Unique ID (Leave blank to use hostname)",
+                    "update_interval": "Update Interval(Seconds)"
                 }
             }
         }

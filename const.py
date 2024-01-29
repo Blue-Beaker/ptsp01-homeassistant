@@ -1,5 +1,8 @@
-"""Constants for the Detailed Hello World Push integration."""
 
-# This is the internal name of the integration, it should also match the directory
-# name for the integration.
 DOMAIN = "ptsp01_powerstrip"
+
+CONF_HOST="host"
+CONF_PORT="port"
+CONF_PASS="password"
+CONF_ID="custom_id"
+CONF_INTERVAL="update_interval"

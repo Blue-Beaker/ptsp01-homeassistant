@@ -14,7 +14,8 @@
                     "host": "IP/主机名",
                     "port": "Telnet端口",
                     "password": "密码(可选)",
-                    "custom_id": "自定义Unique ID(留空自动生成)"
+                    "custom_id": "自定义Unique ID(留空自动生成)",
+                    "update_interval": "更新间隔(秒)"
                 }
             }
         }

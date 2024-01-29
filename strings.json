@@ -6,7 +6,8 @@
           "host": "[%key:common::config_flow::data::host%]",
           "port": "[%key:common::config_flow::data::port%]",
           "password": "[%key:common::config_flow::data::password%]",
-          "custom_id": "[%key:common::config_flow::data::custom_id%]"
+          "custom_id": "[%key:common::config_flow::data::custom_id%]",
+          "update_interval": "[%key:common::config_flow::data::update_interval%]"
         }
       }
     },
