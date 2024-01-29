@@ -49,10 +49,6 @@ class SensorBase(SensorEntity):
         """Initialize the sensor."""
         self._outlet = outlet
 
-    # To link this entity to the cover device, this property must return an
-    # identifiers value matching that used in the cover, but no other information such
-    # as name. If name is returned, this entity will then also become a device in the
-    # HA UI.
     @property
     def device_info(self):
         """Return information to link this entity with the correct device."""

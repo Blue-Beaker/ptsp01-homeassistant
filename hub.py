@@ -102,6 +102,8 @@ class ptsp01_push(ptsp01):
                 _LOGGER.warning("Reconnect Failed:%s, retrying in %s seconds",traceback.format_exc(), 20)
                 time.sleep(20)
         # raise ConnectionError
+    def logMessage(self, *values):
+        _LOGGER.warning("%s",values.__str__())
 class OutletDevice:
     _state=None
     switch: SwitchEntity

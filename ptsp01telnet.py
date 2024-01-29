@@ -54,6 +54,7 @@ class ptsp01:
                 for line in message.splitlines():
                     if line.startswith(" ATTITUDE ADJUSTMENT ("):
                         self.__version=line.split("(")[1].split(")")[0]
+                self.putReadStatesShellScript()
             elif message.find("(none) login: ")>=0:
                 self.login()
             elif message.find("Login incorrect")>=0:
@@ -65,6 +66,15 @@ class ptsp01:
         self.onConnect()
     def onLoginFailure(self):
         pass
+    def putReadStatesShellScript(self):
+        if self.__logged_in:
+            command="tee /tmp/readStates.sh <<EOF\n"
+            for socket in range(1,4):
+                for item in ["Switch","Voltage","Current","Power","EnergyMeter.SingleCount"]:
+                    command=command+f"qmibtree -g Device.SmartPlug.Socket.{socket}.{item}\n"
+            command=command+"EOF\n"
+            self.telnet.write(command.encode())
+            
     def isLoggedin(self):
         return self.__logged_in
     def waitForLogin(self):
@@ -87,10 +97,20 @@ class ptsp01:
         return self.__states[socket].power
     def getEnergy(self,socket:int):
         return self.__states[socket].energy
-
     def getStatus(self):
         if self.__logged_in:
-            command=f"qmibtree -p Device.SmartPlug.Socket.\n"
+            # command=f"qmibtree -p Device.SmartPlug.Socket.\n"
+            # self.telnet.write(command.encode())
+            self.telnet.write("sh /tmp/readStates.sh\n".encode())
+            # for socket in range(1,4):
+            #     self.getStatusSingle(f"Device.SmartPlug.Socket.{socket}.Switch")
+            #     self.getStatusSingle(f"Device.SmartPlug.Socket.{socket}.Voltage")
+            #     self.getStatusSingle(f"Device.SmartPlug.Socket.{socket}.Current")
+            #     self.getStatusSingle(f"Device.SmartPlug.Socket.{socket}.Power")
+            #     self.getStatusSingle(f"Device.SmartPlug.Socket.{socket}.EnergyMeter.SingleCount")
+    def getStatusSingle(self,path):
+        if self.__logged_in:
+            command=f"qmibtree -g {path}\n"
             self.telnet.write(command.encode())
     def pollingStatus(self):
         while(self.__polling):
@@ -107,12 +127,12 @@ class ptsp01:
         return(self.telnet.read_until('\r\n'.encode(),100)).decode()
     
     def read(self):
-        self.__stored_message=self.__stored_message+self.telnet.read_eager().decode()
+        self.__stored_message=self.__stored_message+self.telnet.read_very_eager().decode()
     def getMsg(self):
         if self.__stored_message.find("\r\n")>-1:
-            spl=self.__stored_message.split("\r\n",1)
-            msg=spl[0]
-            self.__stored_message=spl[1]
+            spl=self.__stored_message.split("\r\n")
+            msg=spl[0:-1]
+            self.__stored_message=spl[-1]
             return msg
     # def onMessageBlock(self,messages:str):
     #     lines=messages.split("\r\n")
@@ -129,6 +149,8 @@ class ptsp01:
             socket=int(message[24])
             pairstr=message[26:]
             pair:str=pairstr.split('=')
+            if pair.__len__()<2:
+                return
             value=pair[1]
             key=pair[0].split("(")[0]
             if key==("Switch"):
@@ -142,9 +164,9 @@ class ptsp01:
             # elif key==("Energy"):
             #     self.__states[socket].energy=float(value)
             elif key==("EnergyMeter.SingleCount"):
-                print(value)
                 data=json.loads(value.replace("'",'"'))
-                self.__states[socket].energy=float(data["peakenergy"])
+                energy=float(data["peakenergy"])+float(data["valleyenergy"])
+                self.__states[socket].energy=energy
             self.onStatusUpdate(socket,key)
     def start_polling(self):
         self.__polling=True
@@ -167,12 +189,16 @@ class ptsp01:
                 self.read()
                 msg = self.getMsg()
                 if msg:
-                    self.onMessage(msg)
+                    for message in msg:
+                        self.onMessage(message)
             except (EOFError,OSError,ConnectionError,ConnectionResetError,BrokenPipeError) as e:
                 self.onConnectionFailure(e)
+                self.__logged_in=False
             except Exception as e:
                 self.onException(e)
             time.sleep(0.5)
     def close(self):
         self.__logged_in=False
         self.telnet.close()
+    def logMessage(self,*values):
+        print(*values)
