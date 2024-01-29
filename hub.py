@@ -74,7 +74,7 @@ class ptsp01_push(ptsp01):
             outlet.current_sensor.async_write_ha_state()
         elif key==("Power"):
             outlet.power_sensor.async_write_ha_state()
-        elif key==("Energy"):
+        elif key==("EnergyMeter.SingleCount"):
             outlet.energy_sensor.async_write_ha_state()
     def switch(self, socket: int, switch: int):
         super().switch(socket, switch)
