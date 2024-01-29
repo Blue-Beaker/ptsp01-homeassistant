@@ -1,5 +1,5 @@
 # PTSP01-Hass
-
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)  
 用于邦讯玩儿插排（PTSP01）的Homeassistant自定义集成.  
 目前，它只能连接到无密码的插排。  
 可通过在主板串口连接单片机，使其在收到`Press the [f] key and hit [enter] to enter failsafe mode`后写入 `f\r/etc/init.d/rcS S boot\r`进入failsafe模式并继续启动来绕过密码。  
