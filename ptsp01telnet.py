@@ -8,12 +8,13 @@ class Socket:
     def __init__(self) -> None:
         pass
     def __str__(self) -> str:
-        return f"{self.switch},U={self.voltage},I={self.current},P={self.power},W={self.energy}"
+        return f"{self.switch},U={self.voltage},I={self.current},P={self.power},W={self.energy}/{self.energy_meter}"
     switch=False
     voltage:float=NAN
     current:float=NAN
     power:float=NAN
     energy:float=NAN
+    energy_meter:float=NAN
 class ptsp01:
     host:str
     port:int
@@ -70,7 +71,7 @@ class ptsp01:
         if self.__logged_in:
             command="tee /tmp/readStates.sh <<EOF\n"
             for socket in range(1,4):
-                for item in ["Switch","Voltage","Current","Power","EnergyMeter.SingleCount"]:
+                for item in ["Switch","Voltage","Current","Power","Energy","EnergyMeter.SingleCount"]:
                     command=command+f"qmibtree -g Device.SmartPlug.Socket.{socket}.{item}\n"
             command=command+"EOF\n"
             self.telnet.write(command.encode())
@@ -96,18 +97,10 @@ class ptsp01:
     def getPower(self,socket:int):
         return self.__states[socket].power
     def getEnergy(self,socket:int):
-        return self.__states[socket].energy
+        return max(self.__states[socket].energy,self.__states[socket].energy_meter)
     def getStatus(self):
         if self.__logged_in:
-            # command=f"qmibtree -p Device.SmartPlug.Socket.\n"
-            # self.telnet.write(command.encode())
             self.telnet.write("sh /tmp/readStates.sh\n".encode())
-            # for socket in range(1,4):
-            #     self.getStatusSingle(f"Device.SmartPlug.Socket.{socket}.Switch")
-            #     self.getStatusSingle(f"Device.SmartPlug.Socket.{socket}.Voltage")
-            #     self.getStatusSingle(f"Device.SmartPlug.Socket.{socket}.Current")
-            #     self.getStatusSingle(f"Device.SmartPlug.Socket.{socket}.Power")
-            #     self.getStatusSingle(f"Device.SmartPlug.Socket.{socket}.EnergyMeter.SingleCount")
     def getStatusSingle(self,path):
         if self.__logged_in:
             command=f"qmibtree -g {path}\n"
@@ -161,12 +154,12 @@ class ptsp01:
                 self.__states[socket].current=float(value)
             elif key==("Power"):
                 self.__states[socket].power=float(value)
-            # elif key==("Energy"):
-            #     self.__states[socket].energy=float(value)
+            elif key==("Energy"):
+                self.__states[socket].energy=float(value)
             elif key==("EnergyMeter.SingleCount"):
                 data=json.loads(value.replace("'",'"'))
                 energy=float(data["peakenergy"])+float(data["valleyenergy"])
-                self.__states[socket].energy=energy
+                self.__states[socket].energy_meter=energy
             self.onStatusUpdate(socket,key)
     def start_polling(self):
         self.__polling=True
