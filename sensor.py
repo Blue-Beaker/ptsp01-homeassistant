@@ -1,14 +1,9 @@
 """Sensors of the powerstrip."""
 from typing import Any
-from homeassistant.const import (
-    DEVICE_CLASS_VOLTAGE,
-    DEVICE_CLASS_CURRENT,
-    DEVICE_CLASS_POWER,
-    DEVICE_CLASS_ENERGY,
-)
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity,SensorDeviceClass
 from .hub import Hub,OutletDevice
 from .const import DOMAIN
+import math
 
 
 # See cover.py for more details.
@@ -70,15 +65,23 @@ class SensorBase(SensorEntity):
         """Entity being removed from hass."""
         # The opposite of async_added_to_hass. Remove any registered call backs here.
         self._outlet.remove_callback(self.async_write_ha_state)
-    # @property
-    # def native_value(self):
-    #     """Return the state of the sensor."""
-    #     return None
+    @property
+    def native_value(self):
+        """Return the state of the sensor."""
+        if not self.available:
+            return None
+        raw_value=self.raw_value
+        return raw_value if isinstance(raw_value,float) and math.isfinite(raw_value) else None
+
+    @property
+    def raw_value(self):
+        """Return the state of the sensor."""
+        return None
 
 
 class VoltageSensor(SensorBase):
     """Representation of a Sensor."""
-    device_class = DEVICE_CLASS_VOLTAGE
+    device_class = SensorDeviceClass.VOLTAGE
     native_unit_of_measurement = "V"
 
     def __init__(self, outlet):
@@ -88,13 +91,13 @@ class VoltageSensor(SensorBase):
         # The name of the entity
         self._attr_name = f"{self._outlet.name} Voltage"
     @property
-    def native_value(self):
+    def raw_value(self):
         """Return the state of the sensor."""
         return self._outlet.voltage
 
 class CurrentSensor(SensorBase):
     """Representation of a Sensor."""
-    device_class = DEVICE_CLASS_CURRENT
+    device_class = SensorDeviceClass.CURRENT
     native_unit_of_measurement = "A"
 
     def __init__(self, outlet):
@@ -104,12 +107,12 @@ class CurrentSensor(SensorBase):
         # The name of the entity
         self._attr_name = f"{self._outlet.name} Current"
     @property
-    def native_value(self):
+    def raw_value(self):
         """Return the state of the sensor."""
         return self._outlet.current
 class PowerSensor(SensorBase):
     """Representation of a Sensor."""
-    device_class = DEVICE_CLASS_POWER
+    device_class = SensorDeviceClass.POWER
     native_unit_of_measurement = "W"
 
     def __init__(self, outlet):
@@ -119,12 +122,12 @@ class PowerSensor(SensorBase):
         # The name of the entity
         self._attr_name = f"{self._outlet.name} Power"
     @property
-    def native_value(self):
+    def raw_value(self):
         """Return the state of the sensor."""
         return self._outlet.power
 class EnergySensor(SensorBase):
     """Representation of a Sensor."""
-    device_class = DEVICE_CLASS_ENERGY
+    device_class = SensorDeviceClass.ENERGY
     native_unit_of_measurement = "Wh"
 
     def __init__(self, outlet):
@@ -134,6 +137,6 @@ class EnergySensor(SensorBase):
         # The name of the entity
         self._attr_name = f"{self._outlet.name} Energy"
     @property
-    def native_value(self):
+    def raw_value(self):
         """Return the state of the sensor."""
         return self._outlet.energy

@@ -70,12 +70,12 @@ class OutletEntity(SwitchEntity):
         # called where ever there are changes.
         # The call back registration is done once this entity is registered with HA
         # (rather than in the __init__)
-        self._outlet.register_callback(self.async_write_ha_state)
+        self._outlet.register_callback(self.schedule_update_ha_state)
 
     async def async_will_remove_from_hass(self) -> None:
         """Entity being removed from hass."""
         # The opposite of async_added_to_hass. Remove any registered call backs here.
-        self._outlet.remove_callback(self.async_write_ha_state)
+        self._outlet.remove_callback(self.schedule_update_ha_state)
 
     # Information about the devices that is partially visible in the UI.
     # The most critical thing here is to give this entity a name so it is displayed
@@ -120,8 +120,8 @@ class OutletEntity(SwitchEntity):
         return self._outlet.is_on==True
     def turn_on(self, **kwargs: Any) -> None:
         self._outlet.turn_on()
-        self.async_write_ha_state()
+        self.schedule_update_ha_state()
     def turn_off(self, **kwargs: Any) -> None:
         self._outlet.turn_off()
-        self.async_write_ha_state()
+        self.schedule_update_ha_state()
 

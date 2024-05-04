@@ -3,18 +3,17 @@ import telnetlib
 import time
 import threading
 
-NAN = float("nan")
 class Socket:
     def __init__(self) -> None:
         pass
     def __str__(self) -> str:
         return f"{self.switch},U={self.voltage},I={self.current},P={self.power},W={self.energy}/{self.energy_meter}"
     switch=False
-    voltage:float=NAN
-    current:float=NAN
-    power:float=NAN
-    energy:float=NAN
-    energy_meter:float=NAN
+    voltage:float|None=None
+    current:float|None=None
+    power:float|None=None
+    energy:float|None=None
+    energy_meter:float|None=None
 class ptsp01:
     host:str
     port:int
@@ -96,8 +95,12 @@ class ptsp01:
         return self.__states[socket].current
     def getPower(self,socket:int):
         return self.__states[socket].power
-    def getEnergy(self,socket:int):
-        return max(self.__states[socket].energy,self.__states[socket].energy_meter)
+    def getEnergy(self,socketIndex:int):
+        socket=self.__states[socketIndex]
+        if socket.energy != None and socket.energy_meter != None:
+            return max(socket.energy,socket.energy_meter)
+        else:
+            return socket.energy if socket.energy != None else socket.energy_meter
     def getStatus(self):
         if self.__logged_in:
             self.telnet.write("sh /tmp/readStates.sh\n".encode())
@@ -158,8 +161,9 @@ class ptsp01:
                 self.__states[socket].energy=float(value)
             elif key==("EnergyMeter.SingleCount"):
                 data=json.loads(value.replace("'",'"'))
-                energy=float(data["peakenergy"])+float(data["valleyenergy"])
-                self.__states[socket].energy_meter=energy
+                if data and "peakenergy" in data and "valleyenergy" in data:
+                    energy=float(data["peakenergy"])+float(data["valleyenergy"])
+                    self.__states[socket].energy_meter=energy
             self.onStatusUpdate(socket,key)
     def start_polling(self):
         self.__polling=True

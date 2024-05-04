@@ -67,15 +67,15 @@ class ptsp01_push(ptsp01):
     def onStatusUpdate(self,socket:int,key:str):
         outlet=self.outlets[socket-1]
         if key==("Switch"):
-            outlet.switch.async_write_ha_state()
+            outlet.switch.schedule_update_ha_state()
         elif key==("Voltage"):
-            outlet.voltage_sensor.async_write_ha_state()
+            outlet.voltage_sensor.schedule_update_ha_state()
         elif key==("Current"):
-            outlet.current_sensor.async_write_ha_state()
+            outlet.current_sensor.schedule_update_ha_state()
         elif key==("Power"):
-            outlet.power_sensor.async_write_ha_state()
+            outlet.power_sensor.schedule_update_ha_state()
         elif key==("EnergyMeter.SingleCount"):
-            outlet.energy_sensor.async_write_ha_state()
+            outlet.energy_sensor.schedule_update_ha_state()
     def switch(self, socket: int, switch: int):
         super().switch(socket, switch)
         self.getSwitch(socket)
@@ -87,11 +87,11 @@ class ptsp01_push(ptsp01):
         _LOGGER.warning("Connection Error:%s",traceback.format_exc())
         super().onConnectionFailure(e)
         for outlet in self.outlets:
-            outlet.switch.async_write_ha_state()
-            outlet.voltage_sensor.async_write_ha_state()
-            outlet.current_sensor.async_write_ha_state()
-            outlet.power_sensor.async_write_ha_state()
-            outlet.energy_sensor.async_write_ha_state()
+            outlet.switch.schedule_update_ha_state()
+            outlet.voltage_sensor.schedule_update_ha_state()
+            outlet.current_sensor.schedule_update_ha_state()
+            outlet.power_sensor.schedule_update_ha_state()
+            outlet.energy_sensor.schedule_update_ha_state()
         self.tryReconnect()
     def tryReconnect(self):
         connected=False
