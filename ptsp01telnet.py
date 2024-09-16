@@ -65,7 +65,7 @@ class ptsp01:
         self.telnet.write(("root\n"+self.password+"\n").encode())
         self.onConnect()
     def onLoginFailure(self):
-        pass
+        self.closeConnection()
     def putReadStatesShellScript(self):
         if self.__logged_in:
             command="tee /tmp/readStates.sh <<EOF\n"
@@ -176,7 +176,7 @@ class ptsp01:
     def onStatusUpdate(self,socket:int,key:str):
         pass
     def onConnectionFailure(self,e):
-        self.close()
+        self.closeConnection()
     def onException(self,exception:Exception):
         pass
     def threaded_receiver(self):
@@ -194,7 +194,7 @@ class ptsp01:
             except Exception as e:
                 self.onException(e)
             time.sleep(0.5)
-    def close(self):
+    def closeConnection(self):
         self.__logged_in=False
         self.telnet.close()
     def logMessage(self,*values):

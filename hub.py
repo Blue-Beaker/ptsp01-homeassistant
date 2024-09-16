@@ -82,6 +82,7 @@ class ptsp01_push(ptsp01):
     def onException(self,exception:Exception):
         _LOGGER.error("Exception:%s",traceback.format_exc())
     def onLoginFailure(self):
+        super().onLoginFailure()
         raise ConfigEntryAuthFailed(f"Cant login to {self.host} with given password")
     def onConnectionFailure(self,e):
         _LOGGER.warning("Connection Error:%s",traceback.format_exc())
@@ -97,7 +98,7 @@ class ptsp01_push(ptsp01):
         connected=False
         while(not connected):
             try:
-                self.close()
+                self.closeConnection()
                 self.connect()
                 connected=self.waitForLogin()
                 if not connected:
